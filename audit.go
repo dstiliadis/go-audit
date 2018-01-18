@@ -1,8 +1,9 @@
-package main
+// +build linux
+
+package audit
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"log"
 	"log/syslog"
@@ -81,8 +82,8 @@ func setRules(config *viper.Viper, e executor) error {
 	return nil
 }
 
-func createOutput(config *viper.Viper) (*AuditWriter, error) {
-	var writer *AuditWriter
+func createOutput(config *viper.Viper) (*AuditWriterIO, error) {
+	var writer *AuditWriterIO
 	var err error
 	i := 0
 
@@ -123,7 +124,7 @@ func createOutput(config *viper.Viper) (*AuditWriter, error) {
 	return writer, nil
 }
 
-func createSyslogOutput(config *viper.Viper) (*AuditWriter, error) {
+func createSyslogOutput(config *viper.Viper) (*AuditWriterIO, error) {
 	attempts := config.GetInt("output.syslog.attempts")
 	if attempts < 1 {
 		return nil, fmt.Errorf("Output attempts for syslog must be at least 1, %v provided", attempts)
@@ -140,10 +141,10 @@ func createSyslogOutput(config *viper.Viper) (*AuditWriter, error) {
 		return nil, fmt.Errorf("Failed to open syslog writer. Error: %v", err)
 	}
 
-	return NewAuditWriter(syslogWriter, attempts), nil
+	return NewAuditWriterIO(syslogWriter, attempts), nil
 }
 
-func createFileOutput(config *viper.Viper) (*AuditWriter, error) {
+func createFileOutput(config *viper.Viper) (*AuditWriterIO, error) {
 	attempts := config.GetInt("output.file.attempts")
 	if attempts < 1 {
 		return nil, fmt.Errorf("Output attempts for file must be at least 1, %v provided", attempts)
@@ -193,10 +194,10 @@ func createFileOutput(config *viper.Viper) (*AuditWriter, error) {
 		return nil, fmt.Errorf("Could not chown output file. Error: %s", err)
 	}
 
-	return NewAuditWriter(f, attempts), nil
+	return NewAuditWriterIO(f, attempts), nil
 }
 
-func handleLogRotation(config *viper.Viper, writer *AuditWriter) {
+func handleLogRotation(config *viper.Viper, writer *AuditWriterIO) {
 	// Re-open our log file. This is triggered by a USR1 signal and is meant to be used upon log rotation
 
 	sigc := make(chan os.Signal, 1)
@@ -219,7 +220,7 @@ func handleLogRotation(config *viper.Viper, writer *AuditWriter) {
 	}
 }
 
-func createStdOutOutput(config *viper.Viper) (*AuditWriter, error) {
+func createStdOutOutput(config *viper.Viper) (*AuditWriterIO, error) {
 	attempts := config.GetInt("output.stdout.attempts")
 	if attempts < 1 {
 		return nil, fmt.Errorf("Output attempts for stdout must be at least 1, %v provided", attempts)
@@ -228,7 +229,7 @@ func createStdOutOutput(config *viper.Viper) (*AuditWriter, error) {
 	// l logger is no longer stdout
 	l.SetOutput(os.Stderr)
 
-	return NewAuditWriter(os.Stdout, attempts), nil
+	return NewAuditWriterIO(os.Stdout, attempts), nil
 }
 
 func createFilters(config *viper.Viper) ([]AuditFilter, error) {
@@ -311,57 +312,73 @@ func createFilters(config *viper.Viper) ([]AuditFilter, error) {
 	return filters, nil
 }
 
-func main() {
-	configFile := flag.String("config", "", "Config file location")
+// func RunFromMain() {
+// 	configFile := flag.String("config", "", "Config file location")
+//
+// 	flag.Parse()
+//
+// 	if *configFile == "" {
+// 		el.Println("A config file must be provided")
+// 		flag.Usage()
+// 		os.Exit(1)
+// 	}
+//
+// 	config, err := loadConfig(*configFile)
+// 	if err != nil {
+// 		el.Fatal(err)
+// 	}
+//
+// 	// output needs to be created before anything that write to stdout
+// 	writer, err := createOutput(config)
+// 	if err != nil {
+// 		el.Fatal(err)
+// 	}
+//
+// 	if err := setRules(config, lExec); err != nil {
+// 		el.Fatal(err)
+// 	}
+//
+// 	filters, err := createFilters(config)
+// 	if err != nil {
+// 		el.Fatal(err)
+// 	}
+//
+// 	nlClient, err := NewNetlinkClient(config.GetInt("socket_buffer.receive"))
+// 	if err != nil {
+// 		el.Fatal(err)
+// 	}
+//
+// 	marshaller := NewAuditMarshaller(
+// 		writer,
+// 		uint16(config.GetInt("events.min")),
+// 		uint16(config.GetInt("events.max")),
+// 		config.GetBool("message_tracking.enabled"),
+// 		config.GetBool("message_tracking.log_out_of_order"),
+// 		config.GetInt("message_tracking.max_out_of_order"),
+// 		filters,
+// 	)
+//
+// 	l.Printf("Started processing events in the range [%d, %d]\n", config.GetInt("events.min"), config.GetInt("events.max"))
+//
+// 	//Main loop. Get data from netlink and send it to the json lib for processing
+// 	for {
+// 		msg, err := nlClient.Receive()
+// 		if err != nil {
+// 			el.Printf("Error during message receive: %+v\n", err)
+// 			continue
+// 		}
+//
+// 		if msg == nil {
+// 			continue
+// 		}
+//
+// 		marshaller.Consume(msg)
+// 	}
+// }
 
-	flag.Parse()
-
-	if *configFile == "" {
-		el.Println("A config file must be provided")
-		flag.Usage()
-		os.Exit(1)
-	}
-
-	config, err := loadConfig(*configFile)
-	if err != nil {
-		el.Fatal(err)
-	}
-
-	// output needs to be created before anything that write to stdout
-	writer, err := createOutput(config)
-	if err != nil {
-		el.Fatal(err)
-	}
-
-	if err := setRules(config, lExec); err != nil {
-		el.Fatal(err)
-	}
-
-	filters, err := createFilters(config)
-	if err != nil {
-		el.Fatal(err)
-	}
-
-	nlClient, err := NewNetlinkClient(config.GetInt("socket_buffer.receive"))
-	if err != nil {
-		el.Fatal(err)
-	}
-
-	marshaller := NewAuditMarshaller(
-		writer,
-		uint16(config.GetInt("events.min")),
-		uint16(config.GetInt("events.max")),
-		config.GetBool("message_tracking.enabled"),
-		config.GetBool("message_tracking.log_out_of_order"),
-		config.GetInt("message_tracking.max_out_of_order"),
-		filters,
-	)
-
-	l.Printf("Started processing events in the range [%d, %d]\n", config.GetInt("events.min"), config.GetInt("events.max"))
-
-	//Main loop. Get data from netlink and send it to the json lib for processing
+func Run(nl *NetlinkClient, m *AuditMarshaller) {
 	for {
-		msg, err := nlClient.Receive()
+		msg, err := nl.Receive()
 		if err != nil {
 			el.Printf("Error during message receive: %+v\n", err)
 			continue
@@ -371,6 +388,6 @@ func main() {
 			continue
 		}
 
-		marshaller.Consume(msg)
+		m.Consume(msg)
 	}
 }

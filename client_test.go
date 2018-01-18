@@ -1,12 +1,15 @@
-package main
+// +build linux
+
+package audit
 
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"syscall"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNetlinkClient_KeepConnection(t *testing.T) {

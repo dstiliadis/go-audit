@@ -1,13 +1,15 @@
-package main
+// +build linux
+
+package audit
 
 import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"sync/atomic"
 	"syscall"
 	"time"
-	"fmt"
 )
 
 // Endianness is an alias for what we assume is the current machine endianness

@@ -1,4 +1,6 @@
-package main
+// +build linux
+
+package audit
 
 import (
 	"errors"
@@ -458,7 +460,7 @@ func Test_createFilters(t *testing.T) {
 }
 
 func Benchmark_MultiPacketMessage(b *testing.B) {
-	marshaller := NewAuditMarshaller(NewAuditWriter(&noopWriter{}, 1), uint16(1300), uint16(1399), false, false, 1, []AuditFilter{})
+	marshaller := NewAuditMarshaller(NewAuditWriterIO(&noopWriter{}, 1), uint16(1300), uint16(1399), false, false, 1, []AuditFilter{})
 
 	data := make([][]byte, 6)
 
