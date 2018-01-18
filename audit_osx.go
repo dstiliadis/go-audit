@@ -65,7 +65,27 @@ func (a *AuditWriterChannel) Write(msg *AuditMessageGroup) (err error) {
 	return nil
 }
 
-// Run runs the loop
-func Run(nl *NetlinkClient, m *AuditMarshaller) {
+// AuditConfig is a mock structure for OSX
+type AuditConfig struct {
+}
 
+// NewAuditConfig is a mock function for OSX
+func NewAuditConfig(w AuditWriter, f []AuditFilter) (*AuditConfig, error) {
+	return nil, nil
+}
+
+// Start starts the audit process - OSX mock
+func (a *AuditConfig) Start() {
+
+}
+
+// Stop stops the audit process - OSX mock
+func (a *AuditConfig) Stop() {
+
+}
+
+// UpdateRules updates the rules in the system. The rules are provided
+// as a list of audictl command strings - OSX mock
+func (a *AuditConfig) UpdateRules(rules []string) error {
+	return nil
 }

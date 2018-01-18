@@ -375,19 +375,3 @@ func createFilters(config *viper.Viper) ([]AuditFilter, error) {
 // 		marshaller.Consume(msg)
 // 	}
 // }
-
-func Run(nl *NetlinkClient, m *AuditMarshaller) {
-	for {
-		msg, err := nl.Receive()
-		if err != nil {
-			el.Printf("Error during message receive: %+v\n", err)
-			continue
-		}
-
-		if msg == nil {
-			continue
-		}
-
-		m.Consume(msg)
-	}
-}
