@@ -70,8 +70,8 @@ func NewNetlinkClient(recvSize int) (*NetlinkClient, error) {
 	}
 
 	// Print the current receive buffer size
-	if v, err := syscall.GetsockoptInt(n.fd, syscall.SOL_SOCKET, syscall.SO_RCVBUF); err == nil {
-		l.Println("Socket receive buffer size:", v)
+	if _, err := syscall.GetsockoptInt(n.fd, syscall.SOL_SOCKET, syscall.SO_RCVBUF); err != nil {
+		el.Println("Failed to set buffer size")
 	}
 
 	go func() {

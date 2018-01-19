@@ -85,14 +85,14 @@ func (a *AuditConfig) UpdateRules(rules []string) error {
 		return fmt.Errorf("Failed to initialize. Error: %s", err)
 	}
 
-	for i, v := range rules {
+	for _, v := range rules {
 		// Skip rules with no content
 		if v == "" {
 			continue
 		}
 
 		if err := lExec("auditctl", strings.Fields(v)...); err != nil {
-			return fmt.Errorf("Failed to add rule #%d. Error: %s", i+1, err)
+			return fmt.Errorf("Failed to add rule %+v. Error: %s", v, err)
 		}
 	}
 
