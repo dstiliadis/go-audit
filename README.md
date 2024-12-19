@@ -36,7 +36,7 @@ I became interested in creating a replacement for the existing daemon.
     
 2. Build the binary
 
-    ```
+    ``` 
     make
     ```
 
